@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Word Story Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="max-w-xl w-full mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-10 border border-gray-200">
+        <h1 class="text-3xl md:text-4xl font-bold text-center mb-6 text-gray-800">
+            Mini-Story Generator
+        </h1>
+        <p class="text-center text-gray-600 mb-8">
+            Enter two words below and click the button to get a tiny story.
+        </p>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-6">
+            <input type="text" id="word1Input" placeholder="First word (e.g., star)" class="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+            <input type="text" id="word2Input" placeholder="Second word (e.g., garden)" class="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+        </div>
+
+        <button id="generateBtn" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all transform hover:scale-105">
+            Generate Story
+        </button>
+
+        <div id="storyOutput" class="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200 min-h-[150px] flex items-center justify-center text-gray-700 text-lg leading-relaxed text-center">
+            Your story will appear here.
+        </div>
+
+        <div id="errorBox" class="hidden mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative" role="alert">
+            <span class="block sm:inline" id="errorMessage">Something went wrong. Please try again.</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const word1Input = document.getElementById('word1Input');
+            const word2Input = document.getElementById('word2Input');
+            const generateBtn = document.getElementById('generateBtn');
+            const storyOutput = document.getElementById('storyOutput');
+            const errorBox = document.getElementById('errorBox');
+            const errorMessage = document.getElementById('errorMessage');
+
+            generateBtn.addEventListener('click', async () => {
+                const word1 = word1Input.value.trim();
+                const word2 = word2Input.value.trim();
+
+                if (!word1 || !word2) {
+                    showError('Please enter both words.');
+                    return;
+                }
+
+                storyOutput.textContent = 'Generating your story...';
+                storyOutput.classList.add('italic', 'text-gray-500');
+                generateBtn.disabled = true;
+                hideError();
+
+                try {
+                    const systemPrompt = "You are a creative writer. Your task is to write a single, short, and compelling mini-story (about 3-4 sentences) using the two words provided by the user. The story should be imaginative and cohesive.";
+                    const userQuery = `Write a story with these two words: "${word1}" and "${word2}".`;
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                    const payload = {
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: {
+                            parts: [{ text: systemPrompt }]
+                        },
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.status} ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    const generatedText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (generatedText) {
+                        storyOutput.textContent = generatedText;
+                        storyOutput.classList.remove('italic', 'text-gray-500');
+                    } else {
+                        throw new Error('No content was generated.');
+                    }
+                } catch (error) {
+                    console.error('Failed to generate story:', error);
+                    showError('Oops! I couldn\'t create a story right now. Please try again.');
+                    storyOutput.textContent = 'An error occurred.';
+                    storyOutput.classList.remove('italic', 'text-gray-500');
+                } finally {
+                    generateBtn.disabled = false;
+                }
+            });
+
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorBox.classList.remove('hidden');
+                setTimeout(() => hideError(), 5000);
+            }
+
+            function hideError() {
+                errorBox.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
